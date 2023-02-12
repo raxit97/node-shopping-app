@@ -1,0 +1,16 @@
+[
+    {
+        "id": "18060036726800544",
+        "title": "Book 1",
+        "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5djmZSj0VVfYNsdgh6_CaFZXxlYZyNJzdQeMd3t5N&s",
+        "description": "Description of Book 1",
+        "price": "12"
+    },
+    {
+        "id": "5346345763005456",
+        "title": "Book 2",
+        "imageUrl": "https://media.gettyimages.com/id/157482029/photo/stack-of-books.jpg?s=612x612&w=gi&k=20&c=_Yaofm8sZLZkKs1eMkv-zhk8K4k5u0g0fJuQrReWfdQ=",
+        "description": "Description of Book 2",
+        "price": "15"
+    }
+]
