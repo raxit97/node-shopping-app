@@ -3,7 +3,7 @@ const Product = require("../models/product");
 
 exports.getIndex = async (_, res) => {
     try {
-        const products = await Product.findAll();
+        const products = await Product.fetchAll();
         res.render("shop/product-list", {
             products,
             pageTitle: "Shop",
@@ -16,7 +16,7 @@ exports.getIndex = async (_, res) => {
 
 exports.getProducts = async (_, res) => {
     try {
-        const products = await Product.findAll();
+        const products = await Product.fetchAll();
         res.render("shop/product-list", {
             products,
             pageTitle: "Products",
@@ -30,7 +30,8 @@ exports.getProducts = async (_, res) => {
 exports.getProductDetail = async (req, res) => {
     try {
         const { productId } = req.params;
-        const product = await Product.findByPk(productId);
+        const product = await Product.findById(productId);
+        console.log(product);
         res.render("shop/product-detail", {
             product,
             pageTitle: product.title,
@@ -42,9 +43,7 @@ exports.getProductDetail = async (req, res) => {
 };
 
 exports.getCart = async (req, res) => {
-    const cart = await req.user.getCart();
-    const cartProducts = await cart.getProducts();
-    const products = cartProducts.map(product => product.dataValues);
+    const products = await req.user.getCart();
     res.render("shop/cart", {
         pageTitle: "Your Cart",
         path: "/cart",
@@ -55,15 +54,8 @@ exports.getCart = async (req, res) => {
 exports.postCart = async (req, res) => {
     try {
         const { productId } = req.body;
-        const cart = await req.user.getCart();
-        const products = await cart.getProducts({ where: { id: productId } });
-        let newQuantity = 1;
-        if (products && products[0]) {
-            const existingProduct = products[0].dataValues;
-            newQuantity = existingProduct.cartItem.quantity + 1;
-        }
-        const product = await Product.findByPk(productId);
-        cart.addProduct(product, { through: { quantity: newQuantity } });
+        const product = await Product.findById(productId);
+        await req.user.addToCart(product);
         res.redirect('/cart');
     } catch (error) {
         console.error(error);
@@ -73,27 +65,23 @@ exports.postCart = async (req, res) => {
 exports.deleteCartItem = async (req, res) => {
     try {
         const { productId } = req.body;
-        const cart = await req.user.getCart();
-        const products = await cart.getProducts({ where: { id: productId } });
-        const product = products[0].dataValues;
-        await product.cartItem.destroy();
+        await req.user.deleteFromCart(productId);
         res.redirect('/cart');
     } catch (error) {
         console.error(error);
     }
 };
 
-exports.getCheckout = (_, res) => {
-    res.render("shop/checkout", {
-        pageTitle: "Checkout",
-        path: "/checkout"
-    });
-};
+// exports.getCheckout = (_, res) => {
+//     res.render("shop/checkout", {
+//         pageTitle: "Checkout",
+//         path: "/checkout"
+//     });
+// };
 
 exports.getOrders = async (req, res) => {
     try {
-        const orders = await req.user.getOrders({ include: ['products'] });
-        console.log(orders[0].products[0]);
+        const orders = await req.user.getOrders();
         res.render("shop/orders", {
             orders,
             pageTitle: "Your Orders",
@@ -106,15 +94,7 @@ exports.getOrders = async (req, res) => {
 
 exports.postCreateOrder = async (req, res) => {
     try {
-        const cart = await req.user.getCart();
-        const cartProducts = await cart.getProducts();
-        const order = await req.user.createOrder();
-        const orderProducts = cartProducts.map(product => {
-            product.orderItem = { quantity: product.dataValues.cartItem.quantity }
-            return product;
-        });
-        await order.addProducts(orderProducts);
-        await cart.setProducts(null);
+        await req.user.addOrder();
         res.redirect('/orders');
     } catch (error) {
         console.error(error);

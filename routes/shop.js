@@ -9,7 +9,7 @@ router.get('/products/:productId', getProductDetail);
 router.get('/cart', getCart);
 router.post('/cart', postCart);
 router.post('/cart-delete-item', deleteCartItem);
-router.get('/checkout', getCheckout);
+// router.get('/checkout', getCheckout);
 router.get('/orders', getOrders);
 router.post('/create-order', postCreateOrder);
 
