@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
 // const expressHandlebars = require('express-handlebars');
@@ -7,11 +8,12 @@ const path = require('path');
 const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const { get404 } = require('./controllers/error');
-const { connectToMongoDB } = require('./utils/database');
 const User = require('./models/user');
 
 // Initialize Express object
 const app = express();
+
+const MONGODB_URI = `mongodb+srv://raxitjain:Pwu0YVxueSozErp6@cluster0.z8bnvsw.mongodb.net/shopping?retryWrites=true&w=majority`;
 
 // app.set('view engine', 'pug');
 // app.engine('hbs', expressHandlebars.engine({ layoutsDir: 'views/layouts', defaultLayout: 'main-layout', extname: 'hbs' }));
@@ -26,8 +28,8 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
-    const user = await User.findById("63ff0f7496de13917cca7e65");
-    req.user = new User(user.name, user.email, user.cart, user._id);
+    const user = await User.findById("64001ee2442a09c5763b8bcf");
+    req.user = user;
     next();
 });
 
@@ -36,7 +38,19 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(get404);
 
-connectToMongoDB(async () => {
-    console.log("Connected to MongoDB!!");
-    app.listen(3000);
-});
+mongoose.connect(MONGODB_URI)
+    .then(async () => {
+        console.log("Connected to MongoDB!!");
+        const user = await User.findOne();
+        if (!user) {
+            const newUser = new User({
+                name: "Raxit Jain",
+                email: "raxit.jain18@gmail.com",
+                cart: {
+                    items: []
+                }
+            });
+            newUser.save();
+        }
+        app.listen(3000);
+    });

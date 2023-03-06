@@ -1,26 +1,28 @@
-const Cart = require("../models/cart");
+const Order = require("../models/order");
 const Product = require("../models/product");
 
-exports.getIndex = async (_, res) => {
+exports.getIndex = async (req, res) => {
     try {
-        const products = await Product.fetchAll();
+        const products = await Product.find();
         res.render("shop/product-list", {
             products,
             pageTitle: "Shop",
-            path: "/"
+            path: "/",
+            isLoggedIn: req.isLoggedIn
         });
     } catch (error) {
         console.error(error);
     }
 };
 
-exports.getProducts = async (_, res) => {
+exports.getProducts = async (req, res) => {
     try {
-        const products = await Product.fetchAll();
+        const products = await Product.find();
         res.render("shop/product-list", {
             products,
             pageTitle: "Products",
-            path: "/products"
+            path: "/products",
+            isLoggedIn: req.isLoggedIn
         });
     } catch (error) {
         console.error(error);
@@ -31,11 +33,11 @@ exports.getProductDetail = async (req, res) => {
     try {
         const { productId } = req.params;
         const product = await Product.findById(productId);
-        console.log(product);
         res.render("shop/product-detail", {
             product,
             pageTitle: product.title,
-            path: `/products`
+            path: `/products`,
+            isLoggedIn: req.isLoggedIn
         });
     } catch (error) {
         console.error(error);
@@ -43,11 +45,18 @@ exports.getProductDetail = async (req, res) => {
 };
 
 exports.getCart = async (req, res) => {
-    const products = await req.user.getCart();
+    const userWithProducts = await req.user.populate('cart.items.productId');
+    const products = userWithProducts.cart.items.map(item => {
+        return {
+            ...item.productId._doc,
+            quantity: item.quantity
+        };
+    });
     res.render("shop/cart", {
         pageTitle: "Your Cart",
         path: "/cart",
-        products
+        products,
+        isLoggedIn: req.isLoggedIn
     });
 };
 
@@ -72,7 +81,7 @@ exports.deleteCartItem = async (req, res) => {
     }
 };
 
-// exports.getCheckout = (_, res) => {
+// exports.getCheckout = (req, res) => {
 //     res.render("shop/checkout", {
 //         pageTitle: "Checkout",
 //         path: "/checkout"
@@ -81,11 +90,12 @@ exports.deleteCartItem = async (req, res) => {
 
 exports.getOrders = async (req, res) => {
     try {
-        const orders = await req.user.getOrders();
+        const orders = await Order.find({ "user.userId": req.user._id });
         res.render("shop/orders", {
             orders,
             pageTitle: "Your Orders",
-            path: "/orders"
+            path: "/orders",
+            isLoggedIn: req.isLoggedIn
         });
     } catch (error) {
         console.error(error);
@@ -94,7 +104,22 @@ exports.getOrders = async (req, res) => {
 
 exports.postCreateOrder = async (req, res) => {
     try {
-        await req.user.addOrder();
+        const userWithProducts = await req.user.populate('cart.items.productId');
+        const products = userWithProducts.cart.items.map(item => {
+            return {
+                ...item.productId._doc,
+                quantity: item.quantity
+            };
+        });
+        const order = new Order({
+            user: {
+                name: req.user.name,
+                userId: req.user._id
+            },
+            items: products
+        });
+        await order.save();
+        await req.user.clearCart();
         res.redirect('/orders');
     } catch (error) {
         console.error(error);
