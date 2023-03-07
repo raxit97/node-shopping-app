@@ -39,10 +39,6 @@ main {
 .main-header__nav {
     width: 100%;
     display: none;
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .main-header__item-list {
@@ -62,9 +58,19 @@ main {
     color: white;
 }
 
+.main-header__item button {
+    color: white;
+    background: unset;
+    border: unset;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
 .main-header__item a:hover,
 .main-header__item a:active,
-.main-header__item a.active {
+.main-header__item a.active,
+.main-header__item button:hover,
+.main-header__item button.active {
     color: #ffeb3b;
 }
 
@@ -99,16 +105,25 @@ main {
     padding: 0;
 }
 
-.mobile-nav__item a {
+.mobile-nav__item a,
+.mobile-nav__item button {
     text-decoration: none;
     color: black;
     font-size: 1.5rem;
     padding: 0.5rem 2rem;
 }
 
+.mobile-nav__item button {
+    background: unset;
+    border: unset;
+    cursor: pointer;
+}
+
 .mobile-nav__item a:active,
 .mobile-nav__item a:hover,
-.mobile-nav__item a.active {
+.mobile-nav__item a.active,
+.mobile-nav__item button:hover,
+.mobile-nav__item button.active {
     background: #00695c;
     color: white;
     border-radius: 3px;
@@ -217,12 +232,34 @@ main {
     color: white;
 }
 
+.user-message {
+    margin: auto;
+    width: 90%;
+    border: 1px solid #4771fa;
+    background-color: #b9c9ff;
+    padding: 1rem;
+    border-radius: 3px;
+    text-align: center;
+}
+
+.user-message--error {
+    border-color: red;
+    background-color: rgb(255, 176, 176);
+    color: red;
+    font-weight: bold;
+}
+
 @media (min-width: 768px) {
     .main-header__nav {
         display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     #side-menu-toggle {
         display: none;
+    }
+    .user-message {
+        width: 30rem;
     }
 }

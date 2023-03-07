@@ -2,11 +2,17 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
-// const expressHandlebars = require('express-handlebars');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
+const csurf = require('csurf');
+const flash = require('connect-flash');
+// const expressHandlebars = require('express-handlebars');  
 
 // Import routes
 const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
+const authRoutes = require("./routes/auth");
 const { get404 } = require('./controllers/error');
 const User = require('./models/user');
 
@@ -14,6 +20,10 @@ const User = require('./models/user');
 const app = express();
 
 const MONGODB_URI = `mongodb+srv://raxitjain:Pwu0YVxueSozErp6@cluster0.z8bnvsw.mongodb.net/shopping?retryWrites=true&w=majority`;
+const mongoDBStore = new MongoDBStore({
+    uri: MONGODB_URI,
+    collection: 'sessions'
+});
 
 // app.set('view engine', 'pug');
 // app.engine('hbs', expressHandlebars.engine({ layoutsDir: 'views/layouts', defaultLayout: 'main-layout', extname: 'hbs' }));
@@ -25,32 +35,41 @@ app.set('views', 'views');
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Cookie parser
+app.use(cookieParser());
+
+// Initialize session middleware
+app.use(session({
+    secret: 'my secret',
+    resave: false,
+    saveUninitialized: false,
+    store: mongoDBStore
+}));
+app.use(csurf());
+app.use(flash());
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
-    const user = await User.findById("64001ee2442a09c5763b8bcf");
-    req.user = user;
+    if (req.session.user && req.session.user._id) {
+        const user = await User.findById(req.session.user._id);
+        req.user = user;
+    }
     next();
 });
+
+app.use((req, res, next) => {
+    res.locals.isLoggedIn = req.session.isLoggedIn;
+    res.locals.csrfToken = req.csrfToken();
+    next();
+})
 
 // Use Routes
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
+app.use(authRoutes);
 app.use(get404);
 
-mongoose.connect(MONGODB_URI)
-    .then(async () => {
-        console.log("Connected to MongoDB!!");
-        const user = await User.findOne();
-        if (!user) {
-            const newUser = new User({
-                name: "Raxit Jain",
-                email: "raxit.jain18@gmail.com",
-                cart: {
-                    items: []
-                }
-            });
-            newUser.save();
-        }
-        app.listen(3000);
-    });
+mongoose
+    .connect(MONGODB_URI)
+    .then(() => app.listen(3000, () => console.log("Listening to port 3000...")));
