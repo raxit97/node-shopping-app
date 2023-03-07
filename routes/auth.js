@@ -1,5 +1,6 @@
 const express = require('express');
 const bcryptjs = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/user');
 const router = express.Router();
 
@@ -74,6 +75,69 @@ router.post('/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/');
     });
+});
+
+router.get('/reset-password', (req, res) => {
+    let message = req.flash('error');
+    if (message.length > 0) {
+        message = message[0];
+    } else {
+        message = null;
+    }
+    res.render("auth/email-verification", {
+        pageTitle: "Reset Password",
+        path: "/reset-password",
+        errorMessage: message
+    });
+});
+
+router.post('/verify-email', (req, res) => {
+    const { email } = req.body;
+    crypto.randomBytes(32, async (_, buffer) => {
+        const token = buffer.toString('hex');
+        const user = await User.findOne({ email });
+        if (!user) {
+            req.flash('error', 'No user with that email found');
+            return res.redirect('/reset-password');
+        }
+        user.resetToken = token;
+        user.resetTokenExpiration = Date.now() + 3600000;
+        await user.save();
+        res.redirect(`/reset-password/${token}`);
+    });
+});
+
+router.get('/reset-password/:token', async (req, res) => {
+    const { token } = req.params;
+    const user = await User.findOne({ resetToken: token, resetTokenExpiration: { $gt: Date.now() } });
+    let message = req.flash('error');
+    if (message.length > 0) {
+        message = message[0];
+    } else {
+        message = null;
+    }
+    res.render("auth/reset-password", {
+        pageTitle: "Reset Password",
+        path: "/reset-password",
+        errorMessage: message,
+        userId: user._id.toString(),
+        passwordToken: token
+    });
+});
+
+router.post('/reset-password', async (req, res) => {
+    const { userId, newPassword, passwordToken } = req.body;
+    const user = await User.findOne({
+        _id: userId,
+        resetTokenExpiration: { $gt: Date.now() },
+        resetToken: passwordToken
+    });
+    const password = await bcryptjs.hash(newPassword, 12);
+    user.password = password;
+    user.resetToken = undefined;
+    user.resetTokenExpiration = undefined;
+    await user.save();
+    res.redirect('/login');
 });
 
 module.exports = router;
