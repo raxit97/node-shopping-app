@@ -13,7 +13,7 @@ const flash = require('connect-flash');
 const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
-const { get404 } = require('./controllers/error');
+const { get404, get500 } = require('./controllers/error');
 const User = require('./models/user');
 
 // Initialize Express object
@@ -50,25 +50,35 @@ app.use(flash());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(async (req, res, next) => {
-    if (req.session.user && req.session.user._id) {
-        const user = await User.findById(req.session.user._id);
-        req.user = user;
-    }
-    next();
-});
-
 app.use((req, res, next) => {
     res.locals.isLoggedIn = req.session.isLoggedIn;
     res.locals.csrfToken = req.csrfToken();
     next();
-})
+});
+
+app.use(async (req, res, next) => {
+    try {
+        if (req.session.user && req.session.user._id) {
+            const user = await User.findById(req.session.user._id);
+            req.user = user;
+        }
+        next();
+    } catch (error) {
+        next(new Error(error));
+    }
+});
 
 // Use Routes
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
+app.use(get500);
 app.use(get404);
+
+app.use((error, req, res, next) => {
+    console.error(error);
+    get500(req, res, next);
+});
 
 mongoose
     .connect(MONGODB_URI)

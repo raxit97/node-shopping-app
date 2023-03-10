@@ -43,3 +43,7 @@ button:active {
     color: white;
     background-color: #6200ff;
 }
+
+.form-control input.invalid {
+    border-color: red
+}

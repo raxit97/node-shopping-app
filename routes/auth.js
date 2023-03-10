@@ -1,7 +1,9 @@
 const express = require('express');
 const bcryptjs = require('bcryptjs');
 const crypto = require('crypto');
+const { validationResult } = require('express-validator');
 const User = require('../models/user');
+const { signupFormValidation, loginFormValidation } = require('../utils/validation-util');
 const router = express.Router();
 
 router.get('/signup', (req, res) => {
@@ -14,26 +16,33 @@ router.get('/signup', (req, res) => {
     res.render("auth/signup", {
         pageTitle: "Signup",
         path: "/signup",
-        errorMessage: message
+        errorMessage: message,
+        oldInput: { email: "", password: "", confirmPassword: "" },
+        validationErrors: []
     });
 });
 
-router.post("/signup", async (req, res) => {
-    const { email, password, confirmPassword } = req.body;
-    const user = await User.findOne({ email });
-    if (user) {
-        req.flash('error', 'Email aready exists. Please enter a different one.');
-        return res.redirect('/signup');
-    }
-    const hashedPassword = await bcryptjs.hash(password, 12);
-    const newUser = new User({
-        email,
-        password: hashedPassword,
-        cart: { items: [] }
+router.post("/signup", signupFormValidation, async (req, res) => {
+        const { email, password, confirmPassword } = req.body;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(422).render("auth/signup", {
+                pageTitle: "Signup",
+                path: "/signup",
+                errorMessage: errors.array()[0].msg,
+                oldInput: { email, password, confirmPassword },
+                validationErrors: errors.array()
+            });
+        }
+        const hashedPassword = await bcryptjs.hash(password, 12);
+        const newUser = new User({
+            email,
+            password: hashedPassword,
+            cart: { items: [] }
+        });
+        await newUser.save();
+        res.redirect('/login');
     });
-    await newUser.save();
-    res.redirect('/login');
-});
 
 router.get('/login', (req, res) => {
     let message = req.flash('error');
@@ -45,13 +54,25 @@ router.get('/login', (req, res) => {
     res.render("auth/login", {
         pageTitle: "Login",
         path: "/login",
-        errorMessage: message
+        errorMessage: message,
+        oldInput: { email: "", password: "" },
+        validationErrors: []
     });
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginFormValidation, async (req, res) => {
     try {
         const { email, password } = req.body;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(422).render("auth/login", {
+                pageTitle: "Login",
+                path: "/login",
+                errorMessage: errors.array()[0].msg,
+                oldInput: { email, password },
+                validationErrors: errors.array()
+            });
+        }
         const user = await User.findOne({ email });
         if (!user) {
             req.flash('error', 'Invalid email or password');
