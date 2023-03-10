@@ -7,6 +7,7 @@ const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const csurf = require('csurf');
 const flash = require('connect-flash');
+const multer = require('multer');
 // const expressHandlebars = require('express-handlebars');  
 
 // Import routes
@@ -31,9 +32,22 @@ const mongoDBStore = new MongoDBStore({
 app.set('view engine', 'ejs');
 app.set('views', 'views');
 
-// Use body parser for URL encoding and JSON requests
+const fileStorage = multer.diskStorage({
+    destination: (_, file, cb) => cb(null, 'public/images/products'),
+    filename: (_, file, cb) => cb(null, `${new Date().toISOString()} - ${file.originalname}`)
+});
+const fileFilter = (_, file, cb) => {
+    if (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
+
+// Use body parser for URL encoding and JSON requests and multer for multipart form data
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(multer({ storage: fileStorage, fileFilter }).single('image'));
 
 // Cookie parser
 app.use(cookieParser());
@@ -49,6 +63,7 @@ app.use(csurf());
 app.use(flash());
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public/images', express.static(path.join(__dirname, 'public/images')));
 
 app.use((req, res, next) => {
     res.locals.isLoggedIn = req.session.isLoggedIn;

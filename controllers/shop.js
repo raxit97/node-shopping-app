@@ -120,3 +120,39 @@ exports.postCreateOrder = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getInvoice = async (req, res, next) => {
+    try {
+        const { orderId } = req.params;
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return next(new Error("No order found!!"));
+        }
+        if (order.user.userId.toString() !== req.user._id.toString()) {
+            return next(new Error("Unauthorized"));
+        }
+        const invoiceFileName = `Invoice-${orderId}.pdf`;
+        const invoiceFilePath = path.join('data', 'invoices', invoiceFileName);
+        const pdfDocument = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${invoiceFileName}"`);
+        pdfDocument.pipe(fs.createWriteStream(invoiceFilePath));
+        pdfDocument.pipe(res);
+        pdfDocument.fontSize(26).text('Invoice', {
+            underline: true
+        });
+        pdfDocument.text('---------------------------');
+        let totalPrice = 0;
+        order.items.forEach((product) => {
+            totalPrice += product.quantity * product.price;
+            pdfDocument.fontSize(14).text(`${product.title} - ${product.quantity} x $${product.price}`);
+        });
+        pdfDocument.text('\n');
+        pdfDocument.fontSize(20).text(`Total Price: $${totalPrice}`);
+        pdfDocument.end();
+        // const file = fs.createReadStream(invoiceFilePath);
+        // file.pipe(res);
+    } catch (error) {
+        next(error);
+    }
+};
