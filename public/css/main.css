@@ -262,7 +262,9 @@ main {
     margin: 0 1rem;
 }
 
-.pagination a:hover {
+.pagination a:hover,
+.pagination a:active,
+.pagination a.active {
     color: #fff;
     background-color: #00695c;
 }

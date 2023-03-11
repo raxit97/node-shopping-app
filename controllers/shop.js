@@ -1,13 +1,28 @@
+const fs = require('fs');
+const path = require('path');
+const PDFDocument = require('pdfkit');
 const Order = require("../models/order");
 const Product = require("../models/product");
 
+const ITEMS_PER_PAGE = 1;
+
 exports.getIndex = async (req, res, next) => {
     try {
-        const products = await Product.find();
-        res.render("shop/product-list", {
+        const page = Number(req.query.page) || 1;
+        const totalProducts = await Product.find().count();
+        const products = await Product
+            .find().skip((page - 1) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE);
+        res.render("shop/index", {
             products,
             pageTitle: "Shop",
-            path: "/"
+            path: "/",
+            totalProducts,
+            currentPage: page,
+            hasNextPage: (ITEMS_PER_PAGE * page) < totalProducts,
+            hasPreviousPage: page > 1,
+            nextPage: page + 1,
+            previousPage: page - 1,
+            lastPage: Math.ceil(totalProducts / ITEMS_PER_PAGE)
         });
     } catch (error) {
         next(error);
@@ -16,11 +31,21 @@ exports.getIndex = async (req, res, next) => {
 
 exports.getProducts = async (req, res, next) => {
     try {
-        const products = await Product.find();
+        const page = Number(req.query.page) || 1;
+        const totalProducts = await Product.find().count();
+        const products = await Product
+            .find().skip((page - 1) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE);
         res.render("shop/product-list", {
             products,
-            pageTitle: "Products",
-            path: "/products"
+            pageTitle: "Shop",
+            path: "/",
+            totalProducts,
+            currentPage: page,
+            hasNextPage: (ITEMS_PER_PAGE * page) < totalProducts,
+            hasPreviousPage: page > 1,
+            nextPage: page + 1,
+            previousPage: page - 1,
+            lastPage: Math.ceil(totalProducts / ITEMS_PER_PAGE)
         });
     } catch (error) {
         next(error);
@@ -76,13 +101,6 @@ exports.deleteCartItem = async (req, res, next) => {
         next(error);
     }
 };
-
-// exports.getCheckout = (req, res) => {
-//     res.render("shop/checkout", {
-//         pageTitle: "Checkout",
-//         path: "/checkout"
-//     });
-// };
 
 exports.getOrders = async (req, res, next) => {
     try {

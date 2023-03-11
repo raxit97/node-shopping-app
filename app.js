@@ -46,7 +46,7 @@ const fileFilter = (_, file, cb) => {
 
 // Use body parser for URL encoding and JSON requests and multer for multipart form data
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 app.use(multer({ storage: fileStorage, fileFilter }).single('image'));
 
 // Cookie parser

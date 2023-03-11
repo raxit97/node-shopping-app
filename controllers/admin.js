@@ -108,17 +108,17 @@ exports.getProducts = async (req, res, next) => {
     }
 };
 
-exports.postDeleteProduct = async (req, res, next) => {
+exports.deleteProduct = async (req, res, next) => {
     try {
-        const { productId } = req.body;
+        const { productId } = req.params;
         const product = await Product.findById(productId);
         if (!product) {
             next(new Error('Product Not Found'));
         }
         deleteFile(product.imageUrl);
         await Product.deleteOne({ _id: productId, userId: req.user._id });
-        res.redirect('/admin/products');
+        res.status(200).json({ success: true });
     } catch (error) {
-        next(error);
+        res.status(500).json({ success: false });
     }
 };
